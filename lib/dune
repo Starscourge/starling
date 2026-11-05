@@ -3,3 +3,16 @@
  (public_name starling)
  (ocamlopt_flags
   (:standard -O3 -inline 200)))
+
+; Embeds the standard library in the binary, so the executable needs no data files.
+
+(rule
+ (targets prelude_source.ml)
+ (deps prelude.sl)
+ (action
+  (with-stdout-to
+   %{targets}
+   (progn
+    (echo "let text = {prelude|")
+    (cat prelude.sl)
+    (echo "|prelude}\n")))))
