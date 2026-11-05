@@ -83,6 +83,19 @@ let equal a b =
   in
   go [ (a, b) ]
 
+(* The escapes the lexer understands, so printed data reads back as the same value. Other bytes
+   pass through, which keeps UTF-8 text readable. *)
+let write_escaped buf s =
+  String.iter
+    (function
+      | '"' -> Buffer.add_string buf "\\\""
+      | '\\' -> Buffer.add_string buf "\\\\"
+      | '\n' -> Buffer.add_string buf "\\n"
+      | '\t' -> Buffer.add_string buf "\\t"
+      | '\r' -> Buffer.add_string buf "\\r"
+      | c -> Buffer.add_char buf c)
+    s
+
 let rec write buf v =
   match v with
   | Unit -> Buffer.add_string buf "unit"
@@ -93,7 +106,7 @@ let rec write buf v =
   | Big n -> Buffer.add_string buf (Bigint.to_string n)
   | Str s ->
       Buffer.add_char buf '"';
-      Buffer.add_string buf (String.escaped s);
+      write_escaped buf s;
       Buffer.add_char buf '"'
   | Closure c ->
       Buffer.add_string buf "<function ";

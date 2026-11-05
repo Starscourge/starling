@@ -25,6 +25,13 @@
    (>= 4.14))
   dune
   (alcotest :with-test)
-  (qcheck-core :with-test)
-  (qcheck-alcotest :with-test)
+  (fmt :with-test)
+  (qcheck-core
+   (and
+    :with-test
+    (>= 0.91)))
+  (qcheck-alcotest
+   (and
+    :with-test
+    (>= 0.91)))
   (zarith :with-test)))

@@ -25,6 +25,8 @@ let report_diagnostic diagnostic =
   prerr_string (Diagnostic.render ~color:(Lazy.force color_stderr) diagnostic);
   flush stderr
 
+let too_deep_message = "starling: this program is too deeply nested to compile\n"
+
 let report_runtime_error error =
   flush stdout;
   prerr_string (Vm.render_error error);
@@ -46,6 +48,9 @@ let with_errors_reported f =
       exit 1
   | Vm.Runtime_error error ->
       report_runtime_error error;
+      exit 1
+  | Stack_overflow ->
+      prerr_string too_deep_message;
       exit 1
 
 let run_file path =
@@ -97,6 +102,9 @@ let handle_line session line =
   with
   | Diagnostic.Error diagnostic -> report_diagnostic diagnostic
   | Vm.Runtime_error error -> report_runtime_error error
+  | Stack_overflow ->
+      prerr_string too_deep_message;
+      flush stderr
 
 (* Reads until the input is a complete form, so a definition can span several lines. *)
 let rec read_input prompt acc =

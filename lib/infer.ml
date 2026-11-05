@@ -300,14 +300,13 @@ let rec infer env (e : Syntax.expr) : Typed.expr * ty =
       let body, result = infer body_env body in
       let names = List.map (fun (p : Syntax.binder) -> p.name) params in
       (mk (Lambda (names, body)), TFun (param_types, result))
-  | App ({ desc = Var name; _ }, args)
-    when match SMap.find_opt name env.values with
-         | Some (Constructor _) -> true
-         | _ -> false -> (
-      match SMap.find_opt name env.values with
-      | Some (Constructor c) -> constructor_application env e c args
-      | _ -> assert false)
-  | App (f, args) -> infer_application env e f args
+  | App (f, args) -> (
+      match f.desc with
+      | Var name -> (
+          match SMap.find_opt name env.values with
+          | Some (Constructor c) -> constructor_application env e c args
+          | _ -> infer_application env e f args)
+      | _ -> infer_application env e f args)
   | If (c, t, f) ->
       let c = check env c t_bool in
       let t, result = infer env t in
@@ -683,9 +682,7 @@ let check_program env (tops : Syntax.top list) =
             let typed, scheme = infer_generalized env e in
             last_type := Some scheme;
             Some (Typed.Expr typed)
-        | Syntax.Type _ | Syntax.Sig _ ->
-            last_type := None;
-            None)
+        | Syntax.Type _ | Syntax.Sig _ -> None)
       tops
   in
   let last_type =

@@ -65,6 +65,9 @@ let test_printing_values () =
   prints "strings in data keep quotes" "(\"a\" \"b\")\n" "(print '(\"a\" \"b\"))";
   prints "data" "none\n(some 1)\n(some (some \"x\"))\n"
     "(print none) (print (some 1)) (print (some (some \"x\")))";
+  prints "escapes in data" "(\"a\\\"b\\n\")\n" "(print '(\"a\\\"b\\n\"))";
+  prints "UTF-8 passes through" "(\"caf\xc3\xa9\")\ncaf\xc3\xa9\n"
+    "(print '(\"caf\xc3\xa9\")) (print \"caf\xc3\xa9\")";
   prints "functions" "<function id>\n<function <lambda>>\n"
     "(print id) (print (lambda (x) x))";
   evaluates "\"12\"" "(show 12)";
