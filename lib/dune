@@ -1,0 +1,7 @@
+(library
+ (name starling)
+ (public_name starling)
+ (ocamlopt_flags
+  (:standard -O3 -inline 200))
+ (flags
+  (:standard -w +a-4-9-40-41-42-44-45-70)))
