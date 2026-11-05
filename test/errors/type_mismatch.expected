@@ -1,0 +1,5 @@
+error: type mismatch: expected int, found string
+ --> errors/type_mismatch.sl:2:16
+  |
+2 | (print (double "two"))
+  |                ^^^^^

@@ -1,0 +1,5 @@
+error: infinite type: a would have to contain itself in (-> a b)
+ --> errors/infinite_type.sl:1:27
+  |
+1 | (define (self-apply f) (f f))
+  |                           ^

@@ -5,4 +5,6 @@ let () =
       ("frontend", Test_frontend.suite);
       ("infer", Test_infer.suite);
       ("vm", Test_vm.suite);
+      ("examples", Test_golden.examples);
+      ("errors", Test_golden.errors);
     ]

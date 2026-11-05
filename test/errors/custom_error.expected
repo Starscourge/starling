@@ -1,0 +1,3 @@
+runtime error: first: the list is empty
+  in first at errors/custom_error.sl:4:10
+  in <main> at errors/custom_error.sl:6:13

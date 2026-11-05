@@ -1,0 +1,5 @@
+error: this clause can never match, because earlier clauses already cover it
+ --> errors/unreachable_clause.sl:5:6
+  |
+5 |     (1 "one")))
+  |      ^

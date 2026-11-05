@@ -1,3 +1,9 @@
 (test
  (name test_starling)
- (libraries starling alcotest fmt qcheck-core qcheck-alcotest zarith))
+ (libraries starling alcotest fmt qcheck-core qcheck-alcotest zarith)
+ (deps
+  (glob_files ../examples/*)
+  (glob_files errors/*)))
+
+(cram
+ (deps %{bin:starling}))

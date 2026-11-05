@@ -1,0 +1,6 @@
+error: this match does not cover every case
+ --> errors/missing_case.sl:7:3
+  |
+7 |   (match s
+  |   ^^^^^^^^
+note: a value not handled: (triangle _ _)

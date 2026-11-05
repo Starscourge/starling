@@ -1,0 +1,5 @@
+error: type mismatch: expected string, found int
+ --> errors/branches_differ.sl:4:7
+  |
+4 |       n))
+  |       ^

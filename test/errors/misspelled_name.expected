@@ -1,0 +1,6 @@
+error: unbound variable 'lenght'
+ --> errors/misspelled_name.sl:1:9
+  |
+1 | (print (lenght '(1 2 3)))
+  |         ^^^^^^
+note: did you mean 'length'?

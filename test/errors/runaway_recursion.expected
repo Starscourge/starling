@@ -1,0 +1,12 @@
+runtime error: stack overflow
+  in forever at errors/runaway_recursion.sl:2:8
+  in forever at errors/runaway_recursion.sl:2:8
+  in forever at errors/runaway_recursion.sl:2:8
+  in forever at errors/runaway_recursion.sl:2:8
+  in forever at errors/runaway_recursion.sl:2:8
+  ... 5592395 more calls ...
+  in forever at errors/runaway_recursion.sl:2:8
+  in forever at errors/runaway_recursion.sl:2:8
+  in forever at errors/runaway_recursion.sl:2:8
+  in forever at errors/runaway_recursion.sl:2:8
+  in <main> at errors/runaway_recursion.sl:4:8

@@ -1,0 +1,5 @@
+error: this function takes 2 argument(s), but got 1
+ --> errors/wrong_argument_count.sl:2:8
+  |
+2 | (print (add 1))
+  |        ^^^^^^^

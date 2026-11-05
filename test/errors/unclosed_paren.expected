@@ -1,0 +1,5 @@
+error: unclosed '('
+ --> errors/unclosed_paren.sl:1:1
+  |
+1 | (define (f x)
+  | ^

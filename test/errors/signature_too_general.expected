@@ -1,0 +1,6 @@
+error: type mismatch: expected (-> a a), found (-> int int)
+ --> errors/signature_too_general.sl:2:1
+  |
+2 | (define (identity x) (+ x 1))
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: 'a' comes from a type signature, so the definition must work for every type

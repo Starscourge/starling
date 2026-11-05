@@ -1,0 +1,6 @@
+; Zarith is only needed for comparison numbers, so this builds only where it is installed.
+
+(executable
+ (name bench)
+ (optional)
+ (libraries starling zarith unix))

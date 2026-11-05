@@ -1,0 +1,2 @@
+runtime error: 'b' was used before it was defined
+  in <main> at errors/used_before_defined.sl:1:14

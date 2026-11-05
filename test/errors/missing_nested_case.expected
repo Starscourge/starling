@@ -1,0 +1,6 @@
+error: this match does not cover every case
+ --> errors/missing_nested_case.sl:2:3
+  |
+2 |   (match (pair a b)
+  |   ^^^^^^^^^^^^^^^^^
+note: a value not handled: (pair (some _) none)

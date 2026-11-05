@@ -1,0 +1,5 @@
+2
+runtime error: division by zero
+  in average at errors/division_by_zero.sl:2:3
+  in report at errors/division_by_zero.sl:5:10
+  in <main> at errors/division_by_zero.sl:8:1
