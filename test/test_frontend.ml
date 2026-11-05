@@ -171,6 +171,8 @@ let test_form_errors () =
   bad "final 'else'" "(cond)";
   bad "must come last" "(cond (else 1) (a 2))";
   bad "reserved word" "(define if 1)";
+  bad "cannot be defined" "(define _ 1)";
+  bad "cannot be defined" "(define (_ x) x)";
   bad "reserved word" "(lambda (let) 1)";
   bad "bound more than once" "(lambda (x x) x)";
   bad "bound more than once" "(let ((x 1) (x 2)) x)";

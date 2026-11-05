@@ -251,6 +251,11 @@ and parse_body span forms =
   sequence (go forms)
 
 and parse_define (form : Reader.sexp) =
+  let defined_name (name : Reader.sexp) =
+    let b = binder name in
+    if b.name = "_" then Diagnostic.error name.span "'_' cannot be defined";
+    b
+  in
   match form.node with
   | List
       ({ node = Sym "define"; _ }
@@ -258,9 +263,9 @@ and parse_define (form : Reader.sexp) =
       :: (_ :: _ as body)) ->
       let params = List.map binder params in
       check_distinct params;
-      (binder name, mk form.span (Lambda (params, parse_body form.span body)))
+      (defined_name name, mk form.span (Lambda (params, parse_body form.span body)))
   | List [ { node = Sym "define"; _ }; ({ node = Sym _; _ } as name); value ] ->
-      (binder name, expr value)
+      (defined_name name, expr value)
   | _ ->
       Diagnostic.error form.span
         "expected (define name value) or (define (name params...) body...)"
