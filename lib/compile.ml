@@ -59,6 +59,18 @@ let capture_source fn (v : Core.var) =
       | Some index -> FromCapture index
       | None -> failwith ("compile: unresolved variable " ^ v.name))
 
+let is_local fn (v : Core.var) = Hashtbl.mem fn.slots v.id
+
+(* The instructions that can be fused with a comparison against a constant. *)
+let comparison_of = function
+  | Lt -> Some Less
+  | Le -> Some LessEq
+  | Gt -> Some Greater
+  | Ge -> Some GreaterEq
+  | Eq -> Some Equal
+  | Ne -> Some NotEqual
+  | _ -> None
+
 let get_var fn v =
   match capture_source fn v with
   | FromLocal slot -> emit fn (GetLocal slot)
@@ -121,6 +133,15 @@ and expr fn ~tail (e : Core.expr) =
       List.iter (expr fn ~tail:false) args;
       let n = List.length args in
       emit ~span fn (if tail then TailCall n else Call n)
+  (* Arithmetic between a local and a small constant is common enough to have its own
+     instructions. Adding is commutative, so the constant can be on either side. *)
+  | Prim (Add, ([ Local v; Const (Int k) ] | [ Const (Int k); Local v ]), span)
+    when is_local fn v ->
+      emit ~span fn (AddLocalInt (Hashtbl.find fn.slots v.id, k));
+      finish ()
+  | Prim (Sub, [ Local v; Const (Int k) ], span) when is_local fn v ->
+      emit ~span fn (SubLocalInt (Hashtbl.find fn.slots v.id, k));
+      finish ()
   | Prim (instr, args, span) ->
       List.iter (expr fn ~tail:false) args;
       emit ~span fn instr;
@@ -134,8 +155,18 @@ and expr fn ~tail (e : Core.expr) =
       emit fn (GetField index);
       finish ()
   | If (c, a, b) ->
-      expr fn ~tail:false c;
-      let to_else = emit_forward fn (fun t -> JumpIfFalse t) in
+      let to_else =
+        match c with
+        (* Testing a local against a constant needs no stack writes at all. *)
+        | Prim (op, [ Local v; Const (Int k) ], _)
+          when is_local fn v && Option.is_some (comparison_of op) ->
+            let cmp = Option.get (comparison_of op) in
+            let slot = Hashtbl.find fn.slots v.id in
+            emit_forward fn (fun t -> JumpUnlessLocalInt (cmp, slot, k, t))
+        | _ ->
+            expr fn ~tail:false c;
+            emit_forward fn (fun t -> JumpIfFalse t)
+      in
       expr fn ~tail a;
       if tail then (
         to_else fn.len;

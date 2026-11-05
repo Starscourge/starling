@@ -3,6 +3,10 @@
     These live together because they are mutually recursive: closures hold code, and a
     [Push] instruction holds a value.
 
+    The instructions ending in [LocalInt] are combined forms of very common sequences,
+    like [GetLocal; Push; Sub]. Every stack write goes through the GC's write barrier, so
+    doing the same work in fewer writes is the main way to make the VM faster.
+
     Each call gets a frame on one shared stack:
     {v
       [closure] [arg 0 ... arg n-1] [other locals ...] [operands ...]
@@ -39,6 +43,7 @@ and code = {
 }
 
 and capture = FromLocal of int | FromCapture of int
+and comparison = Less | LessEq | Greater | GreaterEq | Equal | NotEqual
 
 and instr =
   | Push of value
@@ -61,6 +66,11 @@ and instr =
   | Return
   | MakeData of ctor_desc * int
   | GetField of int  (** Replaces a [Data] with one of its fields. *)
+  | AddLocalInt of int * int  (** Pushes local slot + constant. *)
+  | SubLocalInt of int * int  (** Pushes local slot - constant. *)
+  | JumpUnlessLocalInt of comparison * int * int * int
+      (** Compares local slot with a constant, and jumps to the target if that is false.
+      *)
   | Add
   | Sub
   | Mul

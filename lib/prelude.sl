@@ -157,19 +157,24 @@
 ;; A stable merge sort. less decides the order.
 (define (sort less xs)
   (define (merge a b)
-    (match (pair a b)
-      ((pair nil _) b)
-      ((pair _ nil) a)
-      ((pair (cons x xrest) (cons y yrest))
-       (if (less y x)
-           (cons y (merge a yrest))
-           (cons x (merge xrest b))))))
-  (let ((n (length xs)))
-    (if (< n 2)
-        xs
-        (let ((half (quot n 2)))
-          (merge (sort less (take half xs))
-                 (sort less (drop half xs)))))))
+    (match a
+      (nil b)
+      ((cons x xrest)
+       (match b
+         (nil a)
+         ((cons y yrest)
+          (if (less y x)
+              (cons y (merge a yrest))
+              (cons x (merge xrest b))))))))
+  ;; Sorts the first n elements of items.
+  (define (go n items)
+    (cond ((= n 0) nil)
+          ((= n 1) (list (head items)))
+          (else
+           (let ((half (quot n 2)))
+             (merge (go half items)
+                    (go (- n half) (drop half items)))))))
+  (go (length xs) xs))
 
 ;; Strings
 

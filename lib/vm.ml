@@ -86,6 +86,15 @@ let capture_trace stack frames frame_count current pc =
 
    A saved frame is just the caller's pc and fp. The caller's code and captures come back from
    its closure at stack.(fp - 1), so a call writes no pointers to the frame array. *)
+let comparison_holds cmp order =
+  match cmp with
+  | Less -> order < 0
+  | LessEq -> order <= 0
+  | Greater -> order > 0
+  | GreaterEq -> order >= 0
+  | Equal -> order = 0
+  | NotEqual -> order <> 0
+
 let run vm ~n_globals (main : code) =
   if n_globals > Array.length vm.globals then (
     let bigger = Array.make (2 * n_globals) Undefined in
@@ -237,6 +246,30 @@ let run vm ~n_globals (main : code) =
           | _ -> assert false)
       (* The common all-small-integer cases are handled inline, and everything else goes through
          Value, which also handles overflow into Bigint. *)
+      | AddLocalInt (slot, k) ->
+          (match s.(!fp + slot) with
+          | Int x when x lxor (x + k) land (k lxor (x + k)) >= 0 -> s.(!sp) <- Int (x + k)
+          | v -> s.(!sp) <- Value.add v (Int k));
+          incr sp
+      | SubLocalInt (slot, k) ->
+          (match s.(!fp + slot) with
+          | Int x when x lxor k land (x lxor (x - k)) >= 0 -> s.(!sp) <- Int (x - k)
+          | v -> s.(!sp) <- Value.sub v (Int k));
+          incr sp
+      | JumpUnlessLocalInt (cmp, slot, k, target) ->
+          let holds =
+            match s.(!fp + slot) with
+            | Int x -> (
+                match cmp with
+                | Less -> x < k
+                | LessEq -> x <= k
+                | Greater -> x > k
+                | GreaterEq -> x >= k
+                | Equal -> x = k
+                | NotEqual -> x <> k)
+            | v -> comparison_holds cmp (Value.compare_ints v (Int k))
+          in
+          if not holds then pc := target
       | Add -> (
           decr sp;
           match (s.(!sp - 1), s.(!sp)) with

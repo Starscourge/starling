@@ -23,6 +23,7 @@ and code = {
 }
 
 and capture = FromLocal of int | FromCapture of int
+and comparison = Less | LessEq | Greater | GreaterEq | Equal | NotEqual
 
 and instr =
   | Push of value
@@ -42,6 +43,9 @@ and instr =
   | Return
   | MakeData of ctor_desc * int
   | GetField of int
+  | AddLocalInt of int * int
+  | SubLocalInt of int * int
+  | JumpUnlessLocalInt of comparison * int * int * int
   | Add
   | Sub
   | Mul
@@ -66,6 +70,8 @@ and instr =
 (* How many operands each instruction pops and pushes. *)
 let stack_use = function
   | Push _ | GetLocal _ | GetCapture _ | GetGlobal _ | MakeClosure _ -> (0, 1)
+  | AddLocalInt _ | SubLocalInt _ -> (0, 1)
+  | JumpUnlessLocalInt _ -> (0, 0)
   | SetLocal _ | SetGlobal _ | Pop | JumpIfFalse _ | Switch _ -> (1, 0)
   | Jump _ | PatchCapture _ | MatchFailure -> (0, 0)
   | Call n -> (n + 1, 1)
@@ -78,7 +84,7 @@ let stack_use = function
 
 let successors pc = function
   | Jump target -> [ target ]
-  | JumpIfFalse target -> [ pc + 1; target ]
+  | JumpIfFalse target | JumpUnlessLocalInt (_, _, _, target) -> [ pc + 1; target ]
   | Switch targets -> Array.to_list targets
   | TailCall _ | Return | Raise | MatchFailure -> []
   | _ -> [ pc + 1 ]
@@ -124,6 +130,14 @@ let capture_to_string = function
   | FromLocal i -> "local " ^ string_of_int i
   | FromCapture i -> "capture " ^ string_of_int i
 
+let comparison_to_string = function
+  | Less -> "<"
+  | LessEq -> "<="
+  | Greater -> ">"
+  | GreaterEq -> ">="
+  | Equal -> "="
+  | NotEqual -> "!="
+
 let instr_to_string = function
   | Push v -> "Push " ^ value_to_string v
   | GetLocal i -> Printf.sprintf "GetLocal %d" i
@@ -148,6 +162,11 @@ let instr_to_string = function
   | Return -> "Return"
   | MakeData (c, n) -> Printf.sprintf "MakeData %s %d" c.name n
   | GetField i -> Printf.sprintf "GetField %d" i
+  | AddLocalInt (slot, k) -> Printf.sprintf "AddLocalInt local %d, %d" slot k
+  | SubLocalInt (slot, k) -> Printf.sprintf "SubLocalInt local %d, %d" slot k
+  | JumpUnlessLocalInt (cmp, slot, k, target) ->
+      Printf.sprintf "JumpUnlessLocalInt local %d %s %d, %d" slot
+        (comparison_to_string cmp) k target
   | Add -> "Add"
   | Sub -> "Sub"
   | Mul -> "Mul"

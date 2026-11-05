@@ -563,8 +563,59 @@ let comparison name op_z =
       let text = Printf.sprintf "(%s %s %s)" name (Z.to_string a) (Z.to_string b) in
       Value.repr (eval_integer text) = string_of_bool (op_z a b))
 
+(* The combined instructions take their left operand from a local and their right from a small
+   constant, so they need operands in that shape, compiled inside a function. *)
+let gen_small_constant =
+  QCheck2.Gen.(
+    oneof_weighted
+      [
+        (5, int_range (-3) 3);
+        (2, pure max_int);
+        (2, pure min_int);
+        (1, pure (max_int - 1));
+        (1, pure (min_int + 1));
+        (2, int);
+      ])
+
+let local_op name op_z =
+  QCheck2.Test.make
+    ~name:(name ^ " on a local and a constant agrees with Zarith")
+    ~count:300
+    ~print:(fun (a, k) -> Z.to_string a ^ ", " ^ string_of_int k)
+    QCheck2.Gen.(pair gen_integer gen_small_constant)
+    (fun (a, k) ->
+      let text = Printf.sprintf "(let ((x %s)) (%s x %d))" (Z.to_string a) name k in
+      let expected = op_z a (Z.of_int k) in
+      let value = eval_integer text in
+      Value.repr value = Z.to_string expected
+      &&
+      match value with
+      | Bytecode.Int _ -> Z.fits_int expected
+      | Bytecode.Big _ -> not (Z.fits_int expected)
+      | _ -> false)
+
+let local_branch name op_z =
+  QCheck2.Test.make
+    ~name:(name ^ " branching on a local and a constant agrees with Zarith")
+    ~count:300
+    ~print:(fun (a, k) -> Z.to_string a ^ ", " ^ string_of_int k)
+    QCheck2.Gen.(pair gen_integer gen_small_constant)
+    (fun (a, k) ->
+      let text =
+        Printf.sprintf "(let ((x %s)) (if (%s x %d) true false))" (Z.to_string a) name k
+      in
+      Value.repr (eval_integer text) = string_of_bool (op_z a (Z.of_int k)))
+
 let arithmetic_properties =
   [
+    local_op "+" Z.add;
+    local_op "-" Z.sub;
+    local_branch "<" Z.lt;
+    local_branch "<=" Z.leq;
+    local_branch ">" Z.gt;
+    local_branch ">=" Z.geq;
+    local_branch "=" Z.equal;
+    local_branch "!=" (fun a b -> not (Z.equal a b));
     binary "+" ~skip_zero_divisor:false Z.add;
     binary "-" ~skip_zero_divisor:false Z.sub;
     binary "*" ~skip_zero_divisor:false Z.mul;
@@ -609,11 +660,10 @@ let test_disassembly () =
   List.iter
     (fun fragment -> Alcotest.(check bool) fragment true (contains ~fragment listing))
     [
-      "add1 (arity 1, locals 1, frame 3)";
+      "add1 (arity 1, locals 1, frame 2)";
       "<main> (arity 0";
-      "GetLocal 0";
-      "Push 1";
-      "Add";
+      "AddLocalInt local 0, 1";
+      "Push 41";
       "Return";
       "MakeClosure add1";
       "Print";
@@ -628,6 +678,27 @@ let test_slots_are_reused () =
   in
   locals "(define (f) (begin (let ((a 1)) a) (let ((b 2)) b)))" 1;
   locals "(define (f) (let ((a 1)) (let ((b 2)) (+ a b))))" 2
+
+(* The combined forms must actually get used, or their speed benefit silently disappears. *)
+let test_combined_instructions_are_used () =
+  let uses fragment text =
+    Alcotest.(check bool) (fragment ^ " in " ^ text) true (has_instr fragment text)
+  in
+  let avoids fragment text =
+    Alcotest.(check bool) (fragment ^ " not in " ^ text) false (has_instr fragment text)
+  in
+  uses "AddLocalInt local 0, 1" "(define (f n) (+ n 1))";
+  uses "AddLocalInt local 0, 1" "(define (f n) (+ 1 n))";
+  uses "SubLocalInt local 0, 1" "(define (f n) (- n 1))";
+  (* Subtraction isn't commutative, so a constant on the left must not use it. *)
+  avoids "SubLocalInt" "(define (f n) (- 1 n))";
+  uses "JumpUnlessLocalInt local 0 < 2" "(define (f n) (if (< n 2) 1 2))";
+  uses "JumpUnlessLocalInt local 0 = 0" "(define (f n) (match n (0 1) (_ 2)))";
+  avoids "JumpUnlessLocalInt" "(define (f s) (match s (\"a\" 1) (_ 2)))";
+  (* A captured variable isn't in a local slot. *)
+  avoids "AddLocalInt" "(define (f n) (lambda () (+ n 1)))";
+  (* A shadowed operator isn't the primitive. *)
+  avoids "AddLocalInt" "(define (f + n) (+ n 1))"
 
 let test_stack_checker () =
   let open Bytecode in
@@ -682,6 +753,8 @@ let suite =
     Alcotest.test_case "tail position" `Quick test_tail_position;
     Alcotest.test_case "disassembly" `Quick test_disassembly;
     Alcotest.test_case "slots are reused" `Quick test_slots_are_reused;
+    Alcotest.test_case "combined instructions are used" `Quick
+      test_combined_instructions_are_used;
     Alcotest.test_case "stack checker" `Quick test_stack_checker;
   ]
   @ List.map QCheck_alcotest.to_alcotest arithmetic_properties
